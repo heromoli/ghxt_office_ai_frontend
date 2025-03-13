@@ -128,6 +128,7 @@ const ChatPage: React.FC = () => {
   const dispatch = useDispatch();
   const inputRef = useRef<{ setInput: (value: string) => void }>(null);
 
+
   useEffect(() => {
     if (!moduleId || !moduleConfig[moduleId]) {
       message.error('无效的模块ID');

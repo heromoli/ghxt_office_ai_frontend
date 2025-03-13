@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  isTyping?: boolean;  // 添加打字机效果状态
 }
 
 interface AIModuleState {
@@ -33,6 +34,11 @@ interface UpdateMessagePayload {
   content: string;
 }
 
+interface UpdateTypingStatusPayload {
+  index: number;
+  isTyping: boolean;
+}
+
 const aiModuleSlice = createSlice({
   name: 'aiModule',
   initialState,
@@ -45,12 +51,24 @@ const aiModuleSlice = createSlice({
     },
     addMessage: (state, action: PayloadAction<AddMessagePayload>) => {
       const { role, content } = action.payload;
-      state.conversation.messages.push({ role, content });
+      state.conversation.messages.push({ role, content});
     },
     updateMessage: (state, action: PayloadAction<UpdateMessagePayload>) => {
       const { index, content } = action.payload;
       if (index >= 0 && index < state.conversation.messages.length) {
         state.conversation.messages[index].content = content;
+      }
+    },
+    appendMessageContent: (state, action: PayloadAction<UpdateMessagePayload>) => {
+      const { index, content } = action.payload;
+      if (index >= 0 && index < state.conversation.messages.length) {
+        state.conversation.messages[index].content += content;
+      }
+    },
+    setTypingStatus: (state, action: PayloadAction<UpdateTypingStatusPayload>) => {
+      const { index, isTyping } = action.payload;
+      if (index >= 0 && index < state.conversation.messages.length) {
+        state.conversation.messages[index].isTyping = isTyping;
       }
     },
     clearConversation: (state) => {
@@ -68,6 +86,7 @@ export const {
   setLoading, 
   addMessage, 
   updateMessage,
+  appendMessageContent,
   clearConversation, 
   setSessionId,
 } = aiModuleSlice.actions;

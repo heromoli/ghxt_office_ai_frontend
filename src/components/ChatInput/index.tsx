@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { Input, Button, Space, Spin, message, Upload, Modal } from 'antd';
 import { SendOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,6 +8,8 @@ import type { RootState } from '../../store';
 import { API_ENDPOINTS } from '../../config/api';
 import { useParams } from 'react-router-dom';
 import type { UploadFile, UploadProps, RcFile } from 'antd/es/upload/interface';
+import { fixMarkdown } from '../../utils/markdownHelpers';
+import { streamRequest } from '../../services/xAgentService';
 
 const { TextArea } = Input;
 
@@ -116,60 +118,123 @@ export interface ChatInputRef {
   setInput: (value: string) => void;
 }
 
-const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
+const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
   const [input, setInput] = useState('');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
   const { loading, sessionId } = useSelector((state: RootState) => state.aiModule);
   const messages = useSelector((state: RootState) => state.aiModule.conversation.messages);
   const { moduleId } = useParams<{ moduleId: string }>();
 
   useImperativeHandle(ref, () => ({
-    setInput: (value: string) => {
-      setInput(value);
-    },
+    setInput: (value: string) => setInput(value)
   }));
+
+  const handleSend = async () => {
+    if (!input.trim() && fileList.length === 0) return;
+    
+    if (loading || uploadLoading) return;
+    
+    setIsLoading(true);
+    setInput('');
+    
+    try {
+      if (fileList.length > 0 && moduleId === 'meeting') {
+        // 处理会议语音文件上传
+        await handleConferenceFileUpload(fileList[0].originFileObj as File);
+      } else {
+        // 根据不同模块调用对应的处理函数
+        switch (moduleId) {
+          case 'rules':
+            await handleRulesChat(input.trim());
+            break;
+          case 'product':
+            await handleProductChat(input.trim());
+            break;
+          case 'meeting':
+            await handleConferenceChat(input.trim());
+            break;
+          default:
+            message.error('未知的模块类型');
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleStreamResponse = async (response: Response) => {
     if (!response.ok) throw new Error('网络请求失败');
-    
+
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
-    
     if (!reader) throw new Error('无法读取响应');
 
     let fullResponse = '';
-    
+    let buffer = ''; // 用于存储未完成的数据
+
     try {
       dispatch(addMessage({ role: 'assistant', content: '' }));
       const assistantIndex = messages.length + 1;
-      
+
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
+
+        // 将新数据添加到缓冲区
+        buffer += decoder.decode(value, { stream: true });
         
-        const text = decoder.decode(value);
-        const lines = text.split('\n');
+        // 按行分割数据
+        const lines = buffer.split('\n');
         
+        // 保留最后一行（可能不完整）
+        buffer = lines.pop() || '';
+
+        let hasNewContent = false;
+        let newContent = '';
+
         for (const line of lines) {
           if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            fullResponse += data;
-            dispatch(updateMessage({
-              index: assistantIndex,
-              content: fullResponse
-            }));
-          } else if (!line.startsWith('data:') && line.length > 0) {
-            if( line.includes('event') && line.includes('session')) {
-              break;
-            } else {
-              fullResponse += line;
+            const rawData = line.slice(5).trim();
+            if (rawData) {
+              newContent += rawData;
+              hasNewContent = true;
             }
-          } 
+          } else if (line.length > 0) {
+            if (line.includes('event') && line.includes('session')) {
+              continue;
+            }
+            newContent += line;
+            hasNewContent = true;
+          }
         }
+
+        if (hasNewContent) {
+          fullResponse += newContent;
+          // 使用 fixMarkdown 函数处理文本，然后更新消息
+          dispatch(updateMessage({
+            index: assistantIndex,
+            content: fixMarkdown(fullResponse)
+          }));
+
+          // 强制触发重新渲染
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      // 处理缓冲区中剩余的数据
+      if (buffer.length > 0) {
+        fullResponse += buffer;
+        dispatch(updateMessage({
+          index: assistantIndex,
+          content: fixMarkdown(fullResponse)
+        }));
       }
     } catch (error) {
       console.error('Stream reading error:', error);
@@ -181,8 +246,8 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
   const handleConferenceFileUpload = async (file: File) => {
     setUploadLoading(true);
     try {
-      dispatch(addMessage({ 
-        role: 'user', 
+      dispatch(addMessage({
+        role: 'user',
         content: `[上传文件] ${file.name} (${formatFileSize(file.size)}) - 进行语音识别`
       }));
 
@@ -190,9 +255,9 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
       formData.append('file', file);
 
       if (file.type === 'audio/wav') {
-        formData.append('fileFormat','wav');
+        formData.append('fileFormat', 'wav');
       } else if (file.type === 'audio/mpeg') {
-        formData.append('fileFormat','mp3');
+        formData.append('fileFormat', 'mp3');
       }
 
       console.log('Uploading conference file:', file.name);
@@ -208,8 +273,8 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
 
       // 处理普通JSON响应
       const result = await response.json();
-      dispatch(addMessage({ 
-        role: 'assistant', 
+      dispatch(addMessage({
+        role: 'assistant',
         content: result.reply || '语音识别完成'
       }));
 
@@ -316,35 +381,6 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
     }
   };
 
-  const handleSend = async () => {
-    if ((!input.trim() && fileList.length === 0) || (loading || uploadLoading)) return;
-
-    try {
-      if (fileList.length > 0 && moduleId === 'meeting') {
-        // 处理会议语音文件上传
-        await handleConferenceFileUpload(fileList[0].originFileObj as File);
-      } else if (input.trim()) {
-        // 根据不同模块调用对应的处理函数
-        switch (moduleId) {
-          case 'rules':
-            await handleRulesChat(input.trim());
-            break;
-          case 'product':
-            await handleProductChat(input.trim());
-            break;
-          case 'meeting':
-            await handleConferenceChat(input.trim());
-            break;
-          default:
-            message.error('未知的模块类型');
-        }
-      }
-    } catch (error) {
-      console.error('Handle send error:', error);
-      message.error('操作失败，请重试');
-    }
-  };
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -384,20 +420,20 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
     maxCount: 1,
     fileList,
     beforeUpload: (file) => {
-      const isAudio = file.type === 'audio/wav' || 
-                     file.type === 'audio/mpeg';
+      const isAudio = file.type === 'audio/wav' ||
+        file.type === 'audio/mpeg';
       if (!isAudio) {
         message.error('只能上传 WAV 或 MP3 文件！');
         return false;
       }
-      
+
       // 检查文件大小（限制为100MB）
       const isLt100M = file.size / 1024 / 1024 < 100;
       if (!isLt100M) {
         message.error('文件大小不能超过100MB！');
         return false;
       }
-      
+
       return handleFileSelect(file);
     },
     showUploadList: false,
@@ -417,7 +453,7 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
               handleSend();
             }
           }}
-          disabled={loading || uploadLoading}
+          disabled={loading || uploadLoading || isLoading}
         />
         {moduleId === 'meeting' && (
           <Upload {...uploadProps}>
@@ -432,7 +468,7 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
         )}
         <SendBtn
           type="primary"
-          icon={(loading || uploadLoading) ? <Spin /> : <SendOutlined />}
+          icon={isLoading ? <Spin /> : <SendOutlined />}
           onClick={handleSend}
           disabled={loading || uploadLoading || (!input.trim() && fileList.length === 0)}
         >
@@ -446,9 +482,9 @@ const ChatInput = forwardRef<ChatInputRef>((_, ref) => {
             <span className="file-name">{fileList[0].name}</span>
             <span className="file-size">({formatFileSize(fileList[0].size || 0)})</span>
           </div>
-          <DeleteButton 
-            type="text" 
-            icon={<DeleteOutlined />} 
+          <DeleteButton
+            type="text"
+            icon={<DeleteOutlined />}
             onClick={() => {
               setFileList([]);
               setSelectedFile(null);
