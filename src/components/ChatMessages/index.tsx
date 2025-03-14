@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import type { RootState } from '../../store';
+import SourcesDisplay from '../SourcesDisplay';
 
 const MessagesContainer = styled.div`
   padding: 20px;
@@ -28,6 +29,7 @@ const MessageBubble = styled.div<{ $isUser: boolean }>`
   width: fit-content;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
   ${props => props.$isUser ? `
     margin-left: auto;
     background: #1890ff;
@@ -89,12 +91,17 @@ const ChatMessages: React.FC = () => {
           {message.role === 'user' ? (
             <UserContent>{message.content}</UserContent>
           ) : (
-            <MarkdownContent>
-              <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-                {message.content}
-              </ReactMarkdown>
-              {message.isTyping && <Cursor />}
-            </MarkdownContent>
+            <>
+              <MarkdownContent>
+                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                  {message.content}
+                </ReactMarkdown>
+                {message.isTyping && <Cursor />}
+              </MarkdownContent>
+              {!message.isTyping && message.sources && (
+                <SourcesDisplay sources={message.sources} />
+              )}
+            </>
           )}
         </MessageBubble>
       ))}

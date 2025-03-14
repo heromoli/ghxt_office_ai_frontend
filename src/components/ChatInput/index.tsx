@@ -3,7 +3,7 @@ import { Input, Button, Space, Spin, message, Upload, Modal } from 'antd';
 import { SendOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { addMessage, setLoading, updateMessage } from '../../store/aiModuleSlice';
+import { addMessage, setLoading, updateMessage, updateSources } from '../../store/aiModuleSlice';
 import type { RootState } from '../../store';
 import { API_ENDPOINTS } from '../../config/api';
 import { useParams } from 'react-router-dom';
@@ -136,12 +136,12 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
   const handleSend = async () => {
     if (!input.trim() && fileList.length === 0) return;
-    
+
     if (loading || uploadLoading) return;
-    
+
     setIsLoading(true);
     setInput('');
-    
+
     try {
       if (fileList.length > 0 && moduleId === 'meeting') {
         // 处理会议语音文件上传
@@ -176,6 +176,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
     let fullResponse = '';
     let buffer = ''; // 用于存储未完成的数据
+    let doc_source = [];
 
     try {
       dispatch(addMessage({ role: 'assistant', content: '' }));
@@ -189,10 +190,10 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
         // 将新数据添加到缓冲区
         buffer += decoder.decode(value, { stream: true });
-        
+
         // 按行分割数据
         const lines = buffer.split('\n');
-        
+
         // 保留最后一行（可能不完整）
         buffer = lines.pop() || '';
 
@@ -202,9 +203,15 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
         for (const line of lines) {
           if (line.startsWith('data:')) {
             const rawData = line.slice(5).trim();
+
             if (rawData) {
-              newContent += rawData;
-              hasNewContent = true;
+              if (rawData.startsWith('[{') && rawData.endsWith('}]')) {
+                const jsonData = JSON.parse(rawData);
+                doc_source = jsonData
+              } else {
+                newContent += rawData;
+                hasNewContent = true;
+              }
             }
           } else if (line.length > 0) {
             if (line.includes('event') && line.includes('session')) {
@@ -236,6 +243,10 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
           content: fixMarkdown(fullResponse)
         }));
       }
+      dispatch(updateSources({
+        index: assistantIndex,
+        sources: doc_source
+      }));
     } catch (error) {
       console.error('Stream reading error:', error);
       throw error;

@@ -1,5 +1,11 @@
 import { store } from '../store';
-import { updateMessage } from '../store/aiModuleSlice';
+import { updateMessage, updateSources } from '../store/aiModuleSlice';
+
+interface StreamResponse {
+  content: string;
+  sources?: any[];
+  done?: boolean;
+}
 
 export const streamRequest = async (message: string) => {
   try {
@@ -23,14 +29,42 @@ export const streamRequest = async (message: string) => {
 
       const chunk = decoder.decode(value);
       
-      // 逐字显示
-      for (let i = 0; i < chunk.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 30)); // 控制打字速度
-        accumulatedContent += chunk[i];
-        store.dispatch(updateMessage({
-          index: assistantMessageIndex,
-          content: accumulatedContent
-        }));
+      try {
+        // 尝试解析JSON响应
+        const jsonResponse: StreamResponse = JSON.parse(chunk);
+        
+        if (jsonResponse.content) {
+          // 更新内容
+          accumulatedContent = jsonResponse.content;
+          store.dispatch(updateMessage({
+            index: assistantMessageIndex,
+            content: accumulatedContent
+          }));
+        }
+        
+        // 如果有来源信息，更新来源
+        if (jsonResponse.sources) {
+          store.dispatch(updateSources({
+            index: assistantMessageIndex,
+            sources: jsonResponse.sources
+          }));
+        }
+        
+        // 如果响应标记为完成，退出循环
+        if (jsonResponse.done) {
+          break;
+        }
+      } catch (e) {
+        // 如果不是JSON格式，按照原来的方式处理
+        // 逐字显示
+        for (let i = 0; i < chunk.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 30)); // 控制打字速度
+          accumulatedContent += chunk[i];
+          store.dispatch(updateMessage({
+            index: assistantMessageIndex,
+            content: accumulatedContent
+          }));
+        }
       }
     }
   } catch (error) {
