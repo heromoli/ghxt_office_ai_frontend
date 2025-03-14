@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatMessages from '../../components/ChatMessages';
 import ChatInput from '../../components/ChatInput';
-import { addMessage, clearConversation } from '../../store/aiModuleSlice';
+import { addMessage, clearConversation, setTypingStatus } from '../../store/aiModuleSlice';
 
 const { Header, Content } = Layout;
 
@@ -143,6 +143,12 @@ const ChatPage: React.FC = () => {
     dispatch(addMessage({
       role: 'assistant',
       content: moduleConfig[moduleId].welcome
+    }));
+
+    // 由于欢迎消息是静态的，立即关闭打字机光标
+    dispatch(setTypingStatus({ 
+      index: 0, // 第一条消息
+      isTyping: false 
     }));
   }, [moduleId, navigate, dispatch]);
 

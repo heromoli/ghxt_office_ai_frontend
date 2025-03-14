@@ -70,12 +70,23 @@ const aiModuleSlice = createSlice({
     },
     addMessage: (state, action: PayloadAction<AddMessagePayload>) => {
       const { role, content, sources } = action.payload;
-      state.conversation.messages.push({ role, content, sources });
+      state.conversation.messages.push({ 
+        role, 
+        content, 
+        sources,
+        isTyping: role === 'assistant' // 如果是助手消息，默认设置为正在输入状态 
+      });
     },
     updateMessage: (state, action: PayloadAction<UpdateMessagePayload>) => {
       const { index, content } = action.payload;
       if (index >= 0 && index < state.conversation.messages.length) {
-        state.conversation.messages[index].content = content;
+        const message = state.conversation.messages[index];
+        // 只更新消息内容
+        message.content = content;
+        // 只有当消息是助手消息时才设置打字机状态
+        if (message.role === 'assistant') {
+          message.isTyping = true;
+        }
       }
     },
     appendMessageContent: (state, action: PayloadAction<UpdateMessagePayload>) => {
@@ -113,6 +124,7 @@ export const {
   updateMessage,
   appendMessageContent,
   updateSources,
+  setTypingStatus,
   clearConversation, 
   setSessionId,
 } = aiModuleSlice.actions;

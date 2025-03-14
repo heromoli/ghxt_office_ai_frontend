@@ -3,7 +3,7 @@ import { Input, Button, Space, Spin, message, Upload, Modal } from 'antd';
 import { SendOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { addMessage, setLoading, updateMessage, updateSources } from '../../store/aiModuleSlice';
+import { addMessage, setLoading, updateMessage, updateSources, setTypingStatus } from '../../store/aiModuleSlice';
 import type { RootState } from '../../store';
 import { API_ENDPOINTS } from '../../config/api';
 import { useParams } from 'react-router-dom';
@@ -179,8 +179,11 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
     let doc_source = [];
 
     try {
+      // 先添加一条空的助手消息
       dispatch(addMessage({ role: 'assistant', content: '' }));
-      const assistantIndex = messages.length + 1;
+      // 获取刚刚添加的助手消息的索引
+      const assistantIndex = messages.length + 1; // 因为消息还没有更新到Redux状态，所以是当前长度
+      dispatch(setTypingStatus({ index: assistantIndex, isTyping: true }));
 
       while (true) {
         const { done, value } = await reader.read();
@@ -243,6 +246,8 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
           content: fixMarkdown(fullResponse)
         }));
       }
+      // 完成后关闭打字机光标
+      dispatch(setTypingStatus({ index: assistantIndex, isTyping: false }));
       dispatch(updateSources({
         index: assistantIndex,
         sources: doc_source

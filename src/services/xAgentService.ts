@@ -1,5 +1,5 @@
 import { store } from '../store';
-import { updateMessage, updateSources } from '../store/aiModuleSlice';
+import { updateMessage, updateSources, setTypingStatus } from '../store/aiModuleSlice';
 
 interface StreamResponse {
   content: string;
@@ -67,6 +67,12 @@ export const streamRequest = async (message: string) => {
         }
       }
     }
+
+    // 完成后关闭打字机光标
+    store.dispatch(setTypingStatus({ 
+      index: assistantMessageIndex, 
+      isTyping: false 
+    }));
   } catch (error) {
     console.error('Stream request failed:', error);
   }
