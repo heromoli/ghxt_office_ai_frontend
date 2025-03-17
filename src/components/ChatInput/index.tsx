@@ -205,37 +205,46 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
         for (const line of lines) {
           if (line.startsWith('data:')) {
-            const rawData = line.slice(5).trim();
+            const rawData = JSON.parse(line.slice(5).trim());
 
-            if (rawData) {
-              if (rawData.startsWith('[{') && rawData.endsWith('}]')) {
-                const jsonData = JSON.parse(rawData);
-                doc_source = jsonData
-              } else {
-                newContent += rawData;
-                hasNewContent = true;
-              }
+
+            if(rawData.text !== ''){
+              newContent += rawData.text;
+              hasNewContent = true;
             }
-          } else if (line.length > 0) {
-            if (line.includes('event') && line.includes('session')) {
-              continue;
+
+            if(rawData.finish_reason === 'stop'){
+              doc_source = rawData.doc_references;
+              hasNewContent = false;
             }
-            newContent += line;
-            hasNewContent = true;
+
+            // if (rawData) {
+            //   if (rawData.startsWith('[{') && rawData.endsWith('}]')) {
+            //     const jsonData = JSON.parse(rawData);
+            //     doc_source = jsonData
+            //   } else {
+            //     newContent += rawData;
+            //     hasNewContent = true;
+            //   }
+            // }
+            if (hasNewContent) {
+              fullResponse += newContent;
+              // 使用 fixMarkdown 函数处理文本，然后更新消息
+              dispatch(updateMessage({
+                index: assistantIndex,
+                content: fixMarkdown(fullResponse)
+              }));
+    
+              // 强制触发重新渲染
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
+          } else {
+            hasNewContent = false;
+            break;
           }
         }
 
-        if (hasNewContent) {
-          fullResponse += newContent;
-          // 使用 fixMarkdown 函数处理文本，然后更新消息
-          dispatch(updateMessage({
-            index: assistantIndex,
-            content: fixMarkdown(fullResponse)
-          }));
 
-          // 强制触发重新渲染
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
       }
 
       // 处理缓冲区中剩余的数据
