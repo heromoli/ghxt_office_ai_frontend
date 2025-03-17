@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import type { RootState } from '../../store';
 import SourcesDisplay from '../SourcesDisplay';
+import ThoughtsDisplay from '../ThoughtsDisplay';
 
 const MessagesContainer = styled.div`
   padding: 20px;
@@ -92,13 +93,14 @@ const ChatMessages: React.FC = () => {
             <UserContent>{message.content}</UserContent>
           ) : (
             <>
+              <ThoughtsDisplay thoughts={message.thoughts} isTyping={message.isTyping} />
               <MarkdownContent>
                 <ReactMarkdown rehypePlugins={[rehypeRaw]}>
                   {message.content}
                 </ReactMarkdown>
                 {message.isTyping && <Cursor />}
               </MarkdownContent>
-              {!message.isTyping && message.sources && (
+              {!message.isTyping && message.sources && message.sources.length > 0 && (
                 <SourcesDisplay sources={message.sources} />
               )}
             </>

@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 import MarkdownRenderer from './MarkdownRenderer';
 import SourcesDisplay from './SourcesDisplay';
+import ThoughtsDisplay from './ThoughtsDisplay';
 import type { RootState } from '../store';
 
 const MessageContainer = styled.div`
@@ -27,10 +28,11 @@ interface MessageItemProps {
   role: 'user' | 'assistant';
   content: string;
   sources?: any[];
+  thoughts?: string;
   isLast?: boolean;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ role, content, sources, isLast = false }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ role, content, sources, thoughts, isLast = false }) => {
   const MessageComponent = role === 'user' ? UserMessage : AssistantMessage;
   const loading = useSelector((state: RootState) => state.aiModule.loading);
   
@@ -41,6 +43,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ role, content, sources, isLas
     <MessageComponent>
       {role === 'assistant' ? (
         <>
+          {!isLoading && thoughts && <ThoughtsDisplay thoughts={thoughts} isExpanded={true} />}
           <MarkdownRenderer content={content} isLoading={isLoading} />
           {!isLoading && <SourcesDisplay sources={sources} />}
         </>

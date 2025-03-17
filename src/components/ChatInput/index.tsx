@@ -3,13 +3,14 @@ import { Input, Button, Space, Spin, message, Upload, Modal } from 'antd';
 import { SendOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { addMessage, setLoading, updateMessage, updateSources, setTypingStatus } from '../../store/aiModuleSlice';
+import { addMessage, setLoading, updateMessage, updateSources, setTypingStatus, updateThoughts } from '../../store/aiModuleSlice';
 import type { RootState } from '../../store';
 import { API_ENDPOINTS } from '../../config/api';
 import { useParams } from 'react-router-dom';
 import type { UploadFile, UploadProps, RcFile } from 'antd/es/upload/interface';
 import { fixMarkdown } from '../../utils/markdownHelpers';
 import { streamRequest } from '../../services/xAgentService';
+import { tr } from 'framer-motion/client';
 
 const { TextArea } = Input;
 
@@ -177,10 +178,11 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
     let fullResponse = '';
     let buffer = ''; // 用于存储未完成的数据
     let doc_source = [];
+    let thoughts = [];
 
     try {
       // 先添加一条空的助手消息
-      dispatch(addMessage({ role: 'assistant', content: '' }));
+      dispatch(addMessage({ role: 'assistant', content: '', thoughts: '' }));
       // 获取刚刚添加的助手消息的索引
       const assistantIndex = messages.length + 1; // 因为消息还没有更新到Redux状态，所以是当前长度
       dispatch(setTypingStatus({ index: assistantIndex, isTyping: true }));
@@ -202,31 +204,33 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
         let hasNewContent = false;
         let newContent = '';
+        let hasNewThoughts = false;
+        let newThoughts = '';
 
         for (const line of lines) {
           if (line.startsWith('data:')) {
             const rawData = JSON.parse(line.slice(5).trim());
 
+            // 处理思考过程
+            thoughts = rawData.thoughts;
+            if (thoughts && thoughts[2].thought !== undefined && thoughts[2].thought !== null && thoughts[2].thought !== '') {
+              // 将thoughts作为JSON字符串保存
+              newThoughts += thoughts[2].thought;
+              // 更新思考过程
+              dispatch(updateThoughts({
+                index: assistantIndex,
+                thoughts: newThoughts
+              }));
+            }
 
+            // 处理回答内容
             if(rawData.text !== ''){
               newContent += rawData.text;
+              hasNewThoughts = false;
               hasNewContent = true;
             }
 
-            if(rawData.finish_reason === 'stop'){
-              doc_source = rawData.doc_references;
-              hasNewContent = false;
-            }
-
-            // if (rawData) {
-            //   if (rawData.startsWith('[{') && rawData.endsWith('}]')) {
-            //     const jsonData = JSON.parse(rawData);
-            //     doc_source = jsonData
-            //   } else {
-            //     newContent += rawData;
-            //     hasNewContent = true;
-            //   }
-            // }
+            // 如果有新的内容，更新内容
             if (hasNewContent) {
               fullResponse += newContent;
               // 使用 fixMarkdown 函数处理文本，然后更新消息
@@ -238,13 +242,18 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
               // 强制触发重新渲染
               await new Promise(resolve => setTimeout(resolve, 0));
             }
+
+            //处理内容来源
+            if(rawData.finish_reason === 'stop'){
+              doc_source = rawData.doc_references;
+              hasNewContent = false;
+            }
           } else {
             hasNewContent = false;
+            hasNewThoughts = false;
             break;
           }
         }
-
-
       }
 
       // 处理缓冲区中剩余的数据
@@ -273,7 +282,8 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
     try {
       dispatch(addMessage({
         role: 'user',
-        content: `[上传文件] ${file.name} (${formatFileSize(file.size)}) - 进行语音识别`
+        content: `[上传文件] ${file.name} (${formatFileSize(file.size)}) - 进行语音识别`, 
+        thoughts: ''
       }));
 
       const formData = new FormData();
@@ -300,8 +310,11 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
       const result = await response.json();
       dispatch(addMessage({
         role: 'assistant',
-        content: result.reply || '语音识别完成'
+        content: result.reply || '语音识别完成',
+        thoughts: ''
       }));
+      const assistantIndex = messages.length + 1; 
+      dispatch(setTypingStatus({ index: assistantIndex, isTyping: false }));
 
       setFileList([]);
       setSelectedFile(null);
@@ -317,7 +330,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
   const handleRulesChat = async (message: string) => {
     dispatch(setLoading(true));
     try {
-      dispatch(addMessage({ role: 'user', content: message }));
+      dispatch(addMessage({ role: 'user', content: message, thoughts: '' }));
 
       const response = await fetch(API_ENDPOINTS.CHAT_STREAM, {
         method: 'POST',
@@ -348,7 +361,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
   const handleProductChat = async (message: string) => {
     dispatch(setLoading(true));
     try {
-      dispatch(addMessage({ role: 'user', content: message }));
+      dispatch(addMessage({ role: 'user', content: message, thoughts: '' }));
 
       const response = await fetch(API_ENDPOINTS.CHAT_STREAM_PRODUCT, {
         method: 'POST',
@@ -379,7 +392,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
   const handleConferenceChat = async (message: string) => {
     dispatch(setLoading(true));
     try {
-      dispatch(addMessage({ role: 'user', content: message }));
+      dispatch(addMessage({ role: 'user', content: message, thoughts: '' }));
 
       const response = await fetch(API_ENDPOINTS.CHAT_STREAM_CONFERENCE, {
         method: 'POST',

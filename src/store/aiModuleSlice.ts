@@ -17,6 +17,7 @@ interface Message {
   content: string;
   isTyping?: boolean;  // 添加打字机效果状态
   sources?: Source[];  // 添加来源信息
+  thoughts: string;    // 添加思考过程
 }
 
 interface AIModuleState {
@@ -41,6 +42,7 @@ interface AddMessagePayload {
   role: 'user' | 'assistant';
   content: string;
   sources?: Source[];
+  thoughts: string;
 }
 
 interface UpdateMessagePayload {
@@ -58,6 +60,11 @@ interface UpdateSourcesPayload {
   sources: Source[];
 }
 
+interface UpdateThoughtsPayload {
+  index: number;
+  thoughts: string;
+}
+
 const aiModuleSlice = createSlice({
   name: 'aiModule',
   initialState,
@@ -69,11 +76,12 @@ const aiModuleSlice = createSlice({
       state.loading = action.payload;
     },
     addMessage: (state, action: PayloadAction<AddMessagePayload>) => {
-      const { role, content, sources } = action.payload;
+      const { role, content, sources, thoughts } = action.payload;
       state.conversation.messages.push({ 
         role, 
         content, 
         sources,
+        thoughts: thoughts || '',
         isTyping: role === 'assistant' // 如果是助手消息，默认设置为正在输入状态 
       });
     },
@@ -107,6 +115,12 @@ const aiModuleSlice = createSlice({
         state.conversation.messages[index].sources = sources;
       }
     },
+    updateThoughts: (state, action: PayloadAction<UpdateThoughtsPayload>) => {
+      const { index, thoughts } = action.payload;
+      if (index >= 0 && index < state.conversation.messages.length) {
+        state.conversation.messages[index].thoughts += thoughts;
+      }
+    },
     clearConversation: (state) => {
       state.conversation.messages = [];
       state.sessionId = '';
@@ -125,6 +139,7 @@ export const {
   appendMessageContent,
   updateSources,
   setTypingStatus,
+  updateThoughts,
   clearConversation, 
   setSessionId,
 } = aiModuleSlice.actions;
