@@ -93,7 +93,7 @@ const ChatMessages: React.FC = () => {
             <UserContent>{message.content}</UserContent>
           ) : (
             <>
-              <ThoughtsDisplay thoughts={message.thoughts} isTyping={message.isTyping} />
+              <ThoughtsDisplay thoughts={message.thoughts} />
               <MarkdownContent>
                 <ReactMarkdown rehypePlugins={[rehypeRaw]}>
                   {message.content}

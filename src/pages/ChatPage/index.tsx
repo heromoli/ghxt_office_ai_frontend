@@ -83,7 +83,7 @@ const moduleConfig = {
     welcome: '您好，我是规章制度百事通，有什么我可以帮您的？',
     questions: [
       '请介绍公司的考勤制度。',
-      '年假如何申请？',
+      '出差及差旅费有什么管理规定？',
       '查询公司的公车使用规定。'
     ]
   },
@@ -142,7 +142,8 @@ const ChatPage: React.FC = () => {
     // 添加欢迎消息
     dispatch(addMessage({
       role: 'assistant',
-      content: moduleConfig[moduleId].welcome
+      content: moduleConfig[moduleId].welcome,
+      thoughts: ''
     }));
 
     // 由于欢迎消息是静态的，立即关闭打字机光标
