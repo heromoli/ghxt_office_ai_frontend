@@ -7,10 +7,11 @@ import type { RootState } from '../../store';
 import SourcesDisplay from '../SourcesDisplay';
 import ThoughtsDisplay from '../ThoughtsDisplay';
 
+
+// max-height: 500px;
 const MessagesContainer = styled.div`
   padding: 20px;
   margin-bottom: 20px;
-  max-height: 500px;
   overflow-y: auto;
   background: white;
   border-radius: 12px;

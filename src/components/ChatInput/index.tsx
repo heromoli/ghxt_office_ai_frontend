@@ -9,8 +9,6 @@ import { API_ENDPOINTS } from '../../config/api';
 import { useParams } from 'react-router-dom';
 import type { UploadFile, UploadProps, RcFile } from 'antd/es/upload/interface';
 import { fixMarkdown } from '../../utils/markdownHelpers';
-import { streamRequest } from '../../services/xAgentService';
-import { tr } from 'framer-motion/client';
 
 const { TextArea } = Input;
 

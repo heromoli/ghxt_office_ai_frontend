@@ -5,6 +5,7 @@ import MainLayout from './components/Layout/MainLayout';
 import ChatPage from './pages/ChatPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
+import PestPage from './pages/PestPage'; // 新增引入
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path="/" element={<MainLayout />} />
             <Route path="/chat/:moduleId" element={<ChatPage />} />
+            <Route path="/chat/pest" element={<PestPage />} /> {/* 新增路由 */}
           </Routes>
         </Router>
       </ErrorBoundary>

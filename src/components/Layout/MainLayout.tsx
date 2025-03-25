@@ -195,10 +195,11 @@ const MainLayout: React.FC = () => {
   // const dispatch = useDispatch();
 
   const handleMenuClick = (key: string) => {
-    
-    if (['product', 'rules', 'meeting'].includes(key)) {
+    if (key === 'pest') {
+      navigate('/chat/pest'); // 修改导航路径
+    } else if (['product', 'rules', 'meeting'].includes(key)) {
       navigate(`/chat/${key}`);
-    } else if (key === 'agriculture' || key === 'pest') {
+    } else if (key === 'agriculture') {
       message.info('该功能即将上线，敬请期待');
     } else if (key === 'solutions' || key === 'ocean') {
       message.info('正在开发中，敬请期待');
@@ -250,4 +251,4 @@ const MainLayout: React.FC = () => {
   );
 };
 
-export default MainLayout; 
+export default MainLayout;
