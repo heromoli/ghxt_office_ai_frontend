@@ -6,34 +6,13 @@ import ModuleCards from '../ModuleCards';
 import { useNavigate } from 'react-router-dom';
 // import { useDispatch } from 'react-redux';
 // import titleBg from './icons/title_bg.png';
+import { StyledHeader, HeaderContent } from './styles';
 
 const { Header, Content, Sider } = Layout;
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
   height: 100vh;
-`;
-
-const StyledHeader = styled(Header)`
-  background: rgb(211, 236, 250) !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  width: 100%;
-  z-index: 100;
-  height: 64px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const HeaderContent = styled.div`
-  max-width: 900px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 20px;
 `;
 
 const Title = styled.h1`
