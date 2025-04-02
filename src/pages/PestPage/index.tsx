@@ -10,7 +10,8 @@ import {
     ThoughtChain,
     useXAgent,
     Welcome,
-    XProvider
+    XProvider,
+    XStream 
 } from '@ant-design/x';
 import {
     App,
@@ -99,19 +100,31 @@ export default () => {
         const formData = new FormData();
         formData.append('textInput', text);
         items.forEach(item => {
+            console.log(item);
             if (item.originFileObj) {
                 formData.append('file', item.originFileObj);
             }
         });
-
-        // 添加用户消息
+    
+        // 添加用户消息和上传的图片
         setMessages(prev => [
             ...prev,
             {
                 role: 'user',
                 placement: 'end',
-                content: text,
+                content: '',
                 avatar: {icon: <UserOutlined/>},
+                attachments: items.length > 0 ? items.map(item => ({
+                    type: 'image',
+                    url: (item.originFileObj ? URL.createObjectURL(item.originFileObj) : ''),
+                    name: item.name
+                })) : undefined
+            },
+            {
+                role: 'user',
+                placement: 'end',
+                content: text,
+                avatar: {icon: <UserOutlined/>}
             },
             {
                 role: 'assistant',
@@ -126,10 +139,15 @@ export default () => {
                 method: 'POST',
                 body: formData,
             });
+            console.log( response);
             const data = await response.json();
-            if(data.status === 200){
-                console.log('提交成功:', data.reply);
-            }
+
+
+            // for await (const chunk of XStream({
+            //     readableStream: response.body,
+            //   })) {
+            //     console.log(chunk);
+            //   }
             
             // 更新AI回复消息
             setMessages(prev => [
@@ -159,6 +177,115 @@ export default () => {
             setText('');
         }
     };
+
+
+    const handleStreamResponse = async (response: Response) => {
+        if (!response.ok) throw new Error('网络请求失败');
+    
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        if (!reader) throw new Error('无法读取响应');
+    
+        let fullResponse = '';
+        let buffer = ''; // 用于存储未完成的数据
+        let doc_source = [];
+        let thoughts = [];
+    
+        try {
+          // 先添加一条空的助手消息
+          dispatch(addMessage({ role: 'assistant', content: '', thoughts: '' }));
+          // 获取刚刚添加的助手消息的索引
+          const assistantIndex = messages.length + 1; // 因为消息还没有更新到Redux状态，所以是当前长度
+          dispatch(setTypingStatus({ index: assistantIndex, isTyping: true }));
+    
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
+    
+            // 将新数据添加到缓冲区
+            buffer += decoder.decode(value, { stream: true });
+    
+            // 按行分割数据
+            const lines = buffer.split('\n');
+    
+            // 保留最后一行（可能不完整）
+            buffer = lines.pop() || '';
+    
+            let hasNewContent = false;
+            let newContent = '';
+            let hasNewThoughts = false;
+            let newThoughts = '';
+    
+            for (const line of lines) {
+              if (line.startsWith('data:')) {
+                const rawData = JSON.parse(line.slice(5).trim());
+    
+                // 处理思考过程
+                thoughts = rawData.thoughts;
+                if (thoughts && thoughts[2].thought !== undefined && thoughts[2].thought !== null && thoughts[2].thought !== '') {
+                  // 将thoughts作为JSON字符串保存
+                  newThoughts += thoughts[2].thought;
+                  // 更新思考过程
+                  dispatch(updateThoughts({
+                    index: assistantIndex,
+                    thoughts: newThoughts
+                  }));
+                }
+    
+                // 处理回答内容
+                if(rawData.text !== ''){
+                  newContent += rawData.text;
+                  hasNewThoughts = false;
+                  hasNewContent = true;
+                }
+    
+                // 如果有新的内容，更新内容
+                if (hasNewContent) {
+                  fullResponse += newContent;
+                  // 使用 fixMarkdown 函数处理文本，然后更新消息
+                  dispatch(updateMessage({
+                    index: assistantIndex,
+                    content: fixMarkdown(fullResponse)
+                  }));
+        
+                  // 强制触发重新渲染
+                  await new Promise(resolve => setTimeout(resolve, 0));
+                }
+    
+                //处理内容来源
+                if(rawData.finish_reason === 'stop'){
+                  doc_source = rawData.doc_references;
+                  hasNewContent = false;
+                }
+              } else {
+                hasNewContent = false;
+                hasNewThoughts = false;
+                break;
+              }
+            }
+          }
+    
+          // 处理缓冲区中剩余的数据
+          if (buffer.length > 0) {
+            fullResponse += buffer;
+            dispatch(updateMessage({
+              index: assistantIndex,
+              content: fixMarkdown(fullResponse)
+            }));
+          }
+          // 完成后关闭打字机光标
+          dispatch(setTypingStatus({ index: assistantIndex, isTyping: false }));
+          dispatch(updateSources({
+            index: assistantIndex,
+            sources: doc_source
+          }));
+        } catch (error) {
+          console.error('Stream reading error:', error);
+          throw error;
+        }
+      };
 
     const senderHeader = (
         <Sender.Header
@@ -310,4 +437,9 @@ interface Message {
     content: string;
     avatar: { icon: React.ReactNode };
     loading?: boolean;
+    attachments?: Array<{
+        type: 'image';
+        url: string;
+        name: string;
+    }>;
 }
