@@ -11,7 +11,7 @@ export default defineConfig(function (_a) {
             port: 3000,
             proxy: {
                 '/proxy': {
-                    target: mode === 'production' ? 'http://192.168.13.133:8099' : 'http://127.0.0.1:8099',
+                    target: mode === 'production' ? 'http://8.134.253.211:8099' : 'http://127.0.0.1:8099',
                     changeOrigin: true,
                     rewrite: function (path) { return path.replace(/^\/proxy/, ''); }
                 },

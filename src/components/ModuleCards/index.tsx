@@ -89,14 +89,14 @@ const modules = [
     CardComponent: GreenCard,
   },
   {
-    title: '会议小秘书',
+    title: '会议记录秘书',
     icon: xmsIcon,
     key: 'meeting',
     disabled: false,
     CardComponent: YellowCard,
   },
   {
-    title: 'AI解决方案平台',
+    title: '农业遥感图像识别',
     icon: jjfaIcon,
     key: 'solutions',
     disabled: true,
@@ -112,7 +112,11 @@ const ModuleCards: React.FC = () => {
       message.info('该功能暂未开放');
       return;
     }
-    navigate(`/chat/${key}`);
+     if (key === 'meeting') { 
+      window.open('https://ai.ghxtcom.com/', '_blank');
+    } else if (['product', 'rules'].includes(key)) {
+      navigate(`/chat/${key}`);
+    }
   };
 
   return (

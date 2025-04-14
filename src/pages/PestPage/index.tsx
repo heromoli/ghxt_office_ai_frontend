@@ -11,7 +11,7 @@ import {
     useXAgent,
     Welcome,
     XProvider,
-    XStream 
+    XStream
 } from '@ant-design/x';
 import {
     App,
@@ -44,14 +44,15 @@ import {
 } from '@ant-design/icons';
 import {useNavigate} from 'react-router-dom';
 import {API_ENDPOINTS} from '../../config/api';
-// import { StyledHeader, HeaderContent, BackButton } from '@/components/Layout/styles';
+import { fixMarkdown } from '../../utils/markdownHelpers';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 export default () => {
     const [messages, setMessages] = React.useState<Message[]>([
         {
             role: 'welcome',
             placement: 'start',
-            content: 'Hi！我是病虫害百晓生，已经接入DeepSeek深入思考能力，你有什么问题都可以问我。',
+            content: 'Hi！我是病虫害识别小能手，已经接入DeepSeek深度思考能力，你有什么问题都可以问我。',
             avatar: {icon: <RedditOutlined/>},
         }
     ]);
@@ -95,17 +96,51 @@ export default () => {
         navigate('/');
     };
 
-    const handleSubmit = async (inputValue: string) => {
-        setLoading(true);
-        const formData = new FormData();
-        formData.append('textInput', text);
-        items.forEach(item => {
-            console.log(item);
-            if (item.originFileObj) {
-                formData.append('file', item.originFileObj);
-            }
-        });
-    
+    const updateMessage = (index: number, content: string) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      if (index >= 0 && index < newMessages.length) {
+        const message = newMessages[index];
+        message.content = content;
+        if (message.role === 'assistant') {
+          message.loading = true;
+        }
+      }
+      return newMessages;
+    });
+  };
+
+  const appendMessageContent = (index: number, content: string) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      if (index >= 0 && index < newMessages.length) {
+        newMessages[index].content += content;
+      }
+      return newMessages;
+    });
+  };
+
+  const setTypingStatus = (index: number, loading: boolean) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      if (index >= 0 && index < newMessages.length) {
+        newMessages[index].loading = loading;
+      }
+      return newMessages;
+    });
+  };
+
+  const handleSubmit = async (inputValue: string) => {
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('textInput', text);
+    items.forEach(item => {
+      console.log(item);
+      if (item.originFileObj) {
+        formData.append('file', item.originFileObj);
+      }
+    });
+
         // 添加用户消息和上传的图片
         setMessages(prev => [
             ...prev,
@@ -139,26 +174,13 @@ export default () => {
                 method: 'POST',
                 body: formData,
             });
-            console.log( response);
-            const data = await response.json();
-
-
-            // for await (const chunk of XStream({
-            //     readableStream: response.body,
-            //   })) {
-            //     console.log(chunk);
-            //   }
             
-            // 更新AI回复消息
-            setMessages(prev => [
-                ...prev.slice(0, -1), // 移除loading状态的消息
-                {
-                    role: 'assistant',
-                    placement: 'start',
-                    content: data.reply, // 根据实际API返回字段调整
-                    avatar: {icon: <RedditOutlined/>},
-                }
-            ]);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // 直接处理流式响应
+            await handleStreamResponse(response);
         } catch (error) {
             console.error('提交失败:', error);
             // 更新错误消息
@@ -167,7 +189,7 @@ export default () => {
                 {
                     role: 'assistant',
                     placement: 'start',
-                    content: '请求失败，请稍后再试',
+                    content: error instanceof Error ? error.message : '请求失败，请稍后再试',
                     avatar: {icon: <RedditOutlined/>},
                 }
             ]);
@@ -181,111 +203,68 @@ export default () => {
 
     const handleStreamResponse = async (response: Response) => {
         if (!response.ok) throw new Error('网络请求失败');
-    
+
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         if (!reader) throw new Error('无法读取响应');
-    
+
         let fullResponse = '';
         let buffer = ''; // 用于存储未完成的数据
         let doc_source = [];
         let thoughts = [];
-    
+
         try {
-          // 先添加一条空的助手消息
-          dispatch(addMessage({ role: 'assistant', content: '', thoughts: '' }));
-          // 获取刚刚添加的助手消息的索引
-          const assistantIndex = messages.length + 1; // 因为消息还没有更新到Redux状态，所以是当前长度
-          dispatch(setTypingStatus({ index: assistantIndex, isTyping: true }));
-    
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                // 处理steam-data.txt格式的数据流
+                const lines = buffer.split('\n');
+                
+                // 保留最后一行（可能不完整）
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        const rawData = JSON.parse(line.slice(5).trim());
+                        if (rawData.choices[0].message.content.length > 0 && rawData.choices[0].message.content[0].text) {
+                            fullResponse += rawData.choices[0].message.content[0].text;
+                            
+                            // 实时更新消息内容，保留markdown格式
+                            setMessages(prev => [
+                                ...prev.slice(0, -1),
+                                {
+                                    role: 'assistant',
+                                    placement: 'start',
+                                    content: fixMarkdown(fullResponse),
+                                    avatar: { icon: <RedditOutlined /> }
+                                }
+                            ]);
+
+                        }
+                    }
+                }
+                
+                // 强制触发重新渲染
+                await new Promise(resolve => setTimeout(resolve, 0));
+                // buffer = lines.length > 1 ? lines[lines.length - 1] : '';
+
             }
-    
-            // 将新数据添加到缓冲区
-            buffer += decoder.decode(value, { stream: true });
-    
-            // 按行分割数据
-            const lines = buffer.split('\n');
-    
-            // 保留最后一行（可能不完整）
-            buffer = lines.pop() || '';
-    
-            let hasNewContent = false;
-            let newContent = '';
-            let hasNewThoughts = false;
-            let newThoughts = '';
-    
-            for (const line of lines) {
-              if (line.startsWith('data:')) {
-                const rawData = JSON.parse(line.slice(5).trim());
-    
-                // 处理思考过程
-                thoughts = rawData.thoughts;
-                if (thoughts && thoughts[2].thought !== undefined && thoughts[2].thought !== null && thoughts[2].thought !== '') {
-                  // 将thoughts作为JSON字符串保存
-                  newThoughts += thoughts[2].thought;
-                  // 更新思考过程
-                  dispatch(updateThoughts({
-                    index: assistantIndex,
-                    thoughts: newThoughts
-                  }));
-                }
-    
-                // 处理回答内容
-                if(rawData.text !== ''){
-                  newContent += rawData.text;
-                  hasNewThoughts = false;
-                  hasNewContent = true;
-                }
-    
-                // 如果有新的内容，更新内容
-                if (hasNewContent) {
-                  fullResponse += newContent;
-                  // 使用 fixMarkdown 函数处理文本，然后更新消息
-                  dispatch(updateMessage({
-                    index: assistantIndex,
-                    content: fixMarkdown(fullResponse)
-                  }));
-        
-                  // 强制触发重新渲染
-                  await new Promise(resolve => setTimeout(resolve, 0));
-                }
-    
-                //处理内容来源
-                if(rawData.finish_reason === 'stop'){
-                  doc_source = rawData.doc_references;
-                  hasNewContent = false;
-                }
-              } else {
-                hasNewContent = false;
-                hasNewThoughts = false;
-                break;
-              }
-            }
-          }
-    
-          // 处理缓冲区中剩余的数据
-          if (buffer.length > 0) {
-            fullResponse += buffer;
-            dispatch(updateMessage({
-              index: assistantIndex,
-              content: fixMarkdown(fullResponse)
-            }));
-          }
-          // 完成后关闭打字机光标
-          dispatch(setTypingStatus({ index: assistantIndex, isTyping: false }));
-          dispatch(updateSources({
-            index: assistantIndex,
-            sources: doc_source
-          }));
         } catch (error) {
-          console.error('Stream reading error:', error);
-          throw error;
+            console.error('流式响应处理失败:', error);
+            setMessages(prev => [
+                ...prev.slice(0, -1),
+                {
+                    role: 'assistant',
+                    placement: 'start',
+                    content: '流式响应处理失败，请稍后再试',
+                    avatar: { icon: <RedditOutlined /> },
+                }
+            ]);
         }
-      };
+    };
 
     const senderHeader = (
         <Sender.Header
@@ -336,13 +315,13 @@ export default () => {
             </StyledHeader>
             <Welcome
                 icon="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*s5sNRo5LjfQAAAAAAAAAAAAADgCCAQ/fmt.webp"
-                title="Hi！我是病虫害百晓生。"
+                title="Hi！我是病虫害识别小能手。"
                 description="你有什么问题都可以问我， 我会尽力回答你的。"
             />
             <Card>
                 <XProvider direction={direction}>
                     <Flex style={{height: 720}} gap={12}>
-                        <Conversations
+                        {/* <Conversations
                             style={{width: 200}}
                             defaultActiveKey="1"
                             items={[
@@ -357,12 +336,16 @@ export default () => {
                                     icon: <AlipayCircleOutlined/>,
                                 },
                             ]}
-                        />
-                        <Divider type="vertical" style={{height: '100%'}}/>
+                        /> */}
+                        {/* <Divider type="vertical" style={{height: '100%'}}/> */}
                         <Flex vertical style={{flex: 1}} gap={8}>
                             <Bubble.List
                                 style={{flex: 1}}
-                                items={messages}
+                                items={messages.map(msg => ({
+                                    ...msg,
+                                    content: <MarkdownRenderer content={msg.content} isLoading={msg.loading} />,
+                                    style: msg.role === 'assistant' ? { textAlign:'left' } : { textAlign: 'right' }
+                                }))}
                             />
                             {/*{<Prompts*/}
                             {/*    items={[*/}
@@ -398,8 +381,8 @@ export default () => {
                                 }}
                             </Suggestion>
                         </Flex>
-                        <Divider type="vertical" style={{height: '100%'}}/>
-                        <ThoughtChain
+                        {/* <Divider type="vertical" style={{height: '100%'}}/> */}
+                        {/* <ThoughtChain
                             style={{width: 200}}
                             items={[
                                 {
@@ -422,7 +405,7 @@ export default () => {
                                     icon: <LoadingOutlined/>,
                                 },
                             ]}
-                        />
+                        /> */}
                     </Flex>
                 </XProvider>
             </Card>

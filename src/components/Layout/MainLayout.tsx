@@ -144,8 +144,14 @@ const menuItems = [
     statusColor: 'green',
   },
   {
+    key: 'pest',
+    label: '病虫害识别',
+    status: '内测版',
+    statusColor: 'green',
+  },
+  {
     key: 'solutions',
-    label: 'AI解决方案平台',
+    label: '农业遥感图像识别',
     status: '即将上线',
     statusColor: 'pink',
   },
@@ -161,12 +167,7 @@ const menuItems = [
     status: '即将上线',
     statusColor: 'pink',
   },
-  {
-    key: 'pest',
-    label: '病虫害识别',
-    status: '即将上线',
-    statusColor: 'pink',
-  },
+
 ];
 
 const MainLayout: React.FC = () => {
@@ -175,8 +176,8 @@ const MainLayout: React.FC = () => {
 
   const handleMenuClick = (key: string) => {
     if (key === 'pest') {
-      navigate('/chat/pest'); // 修改导航路径
-    } else if (['product', 'rules', 'meeting'].includes(key)) {
+      navigate(`/chat/pest`);
+    } else if (['product', 'rules', 'meeting'].includes(key)) { //'meeting'
       navigate(`/chat/${key}`);
     } else if (key === 'agriculture') {
       message.info('该功能即将上线，敬请期待');

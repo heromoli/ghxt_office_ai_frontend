@@ -10,8 +10,8 @@ import ThoughtsDisplay from '../ThoughtsDisplay';
 
 // max-height: 500px;
 const MessagesContainer = styled.div`
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 10px;
+  margin-bottom: 10px;
   overflow-y: auto;
   background: white;
   border-radius: 12px;
@@ -25,11 +25,11 @@ const blink = keyframes`
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean }>`
-  margin: 12px 0;
-  padding: 12px 16px;
-  max-width: 80%;
+  margin: 10px 0;
+  padding: 10px 12px;
+  max-width: 100%;
   width: fit-content;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   ${props => props.$isUser ? `
@@ -61,7 +61,7 @@ const Cursor = styled.span`
 const MarkdownContent = styled.div`
   text-align: left;
   & > * {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   & > *:last-child {
     margin-bottom: 0;
@@ -112,4 +112,4 @@ const ChatMessages: React.FC = () => {
   );
 };
 
-export default ChatMessages; 
+export default ChatMessages;
