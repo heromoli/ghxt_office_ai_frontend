@@ -75,7 +75,7 @@ const PurpleCard = styled(FeatureCard)`
 
 const modules = [
   {
-    title: '产品一指禅',
+    title: '项目一指禅',
     icon: yzcIcon,
     key: 'product',
     disabled: false,
@@ -112,9 +112,10 @@ const ModuleCards: React.FC = () => {
       message.info('该功能暂未开放');
       return;
     }
-     if (key === 'meeting') { 
-      window.open('https://ai.ghxtcom.com/', '_blank');
-    } else if (['product', 'rules'].includes(key)) {
+    //  if (key === 'meeting') { 
+    //   window.open('https://ai.ghxtcom.com/', '_blank');
+    // } else 
+    if (['product', 'rules','meeting'].includes(key)) {
       navigate(`/chat/${key}`);
     }
   };

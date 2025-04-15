@@ -355,7 +355,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
     }
   };
 
-  // 处理产品一指禅对话
+  // 处理项目一指禅对话
   const handleProductChat = async (message: string) => {
     dispatch(setLoading(true));
     try {
@@ -379,7 +379,7 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
       await handleStreamResponse(response);
     } catch (error) {
       console.error('Product chat error:', error);
-      // message.error('产品信息查询失败，请重试');
+      // message.error('项目信息查询失败，请重试');
     } finally {
       dispatch(setLoading(false));
       setInput('');

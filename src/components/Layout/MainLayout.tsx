@@ -127,7 +127,7 @@ const AITitle = styled.div`
 const menuItems = [
   {
     key: 'product',
-    label: '产品一指禅',
+    label: '项目一指禅',
     status: '内测版',
     statusColor: 'green',
   },
@@ -150,14 +150,14 @@ const menuItems = [
     statusColor: 'green',
   },
   {
-    key: 'solutions',
-    label: '农业遥感图像识别',
-    status: '即将上线',
-    statusColor: 'pink',
+    key: 'agriculture',
+    label: '穗问1.0',
+    status: '内测版',
+    statusColor: 'green',
   },
   {
-    key: 'agriculture',
-    label: '农业大模型',
+    key: 'solutions',
+    label: '农业遥感图像识别',
     status: '即将上线',
     statusColor: 'pink',
   },
@@ -177,10 +177,10 @@ const MainLayout: React.FC = () => {
   const handleMenuClick = (key: string) => {
     if (key === 'pest') {
       navigate(`/chat/pest`);
-    } else if (['product', 'rules', 'meeting'].includes(key)) { //'meeting'
+    } else if (['product', 'rules', 'meeting'].includes(key)) { 
       navigate(`/chat/${key}`);
     } else if (key === 'agriculture') {
-      message.info('该功能即将上线，敬请期待');
+      window.open('https://ai.ghxtcom.com/', '_blank');
     } else if (key === 'solutions' || key === 'ocean') {
       message.info('正在开发中，敬请期待');
     }

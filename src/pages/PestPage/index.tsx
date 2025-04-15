@@ -52,7 +52,7 @@ export default () => {
         {
             role: 'welcome',
             placement: 'start',
-            content: 'Hi！我是病虫害识别小能手，已经接入DeepSeek深度思考能力，你有什么问题都可以问我。',
+            content: 'Hi！我是病虫害识别小能手，已经接入DeepSeek深度思考能力。',
             avatar: {icon: <RedditOutlined/>},
         }
     ]);
