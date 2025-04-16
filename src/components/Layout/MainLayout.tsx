@@ -144,6 +144,12 @@ const menuItems = [
     statusColor: 'green',
   },
   {
+    key: 'solutions',
+    label: 'AI解决方案',
+    status: '内测版',
+    statusColor: 'green',
+  },
+  {
     key: 'pest',
     label: '病虫害识别',
     status: '内测版',
@@ -156,7 +162,7 @@ const menuItems = [
     statusColor: 'green',
   },
   {
-    key: 'solutions',
+    key: 'yaogan',
     label: '农业遥感图像识别',
     status: '即将上线',
     statusColor: 'pink',
@@ -177,7 +183,7 @@ const MainLayout: React.FC = () => {
   const handleMenuClick = (key: string) => {
     if (key === 'pest') {
       navigate(`/chat/pest`);
-    } else if (['product', 'rules', 'meeting'].includes(key)) { 
+    } else if (['product', 'rules', 'meeting', 'solutions'].includes(key)) { 
       navigate(`/chat/${key}`);
     } else if (key === 'agriculture') {
       window.open('https://ai.ghxtcom.com/', '_blank');

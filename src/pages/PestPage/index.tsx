@@ -1,4 +1,4 @@
-import {CloudUploadOutlined, LinkOutlined} from '@ant-design/icons';
+import { CloudUploadOutlined, LinkOutlined } from '@ant-design/icons';
 import {
     Attachments,
     AttachmentsProps,
@@ -29,7 +29,7 @@ import {
     Typography,
     notification
 } from 'antd';
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
     ArrowLeftOutlined,
@@ -42,19 +42,19 @@ import {
     UserOutlined,
     RedditOutlined,
 } from '@ant-design/icons';
-import {useNavigate} from 'react-router-dom';
-import {API_ENDPOINTS} from '../../config/api';
+import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../config/api';
 import { fixMarkdown } from '../../utils/markdownHelpers';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 export default () => {
     const [messages, setMessages] = React.useState<Message[]>([
-        {
-            role: 'welcome',
-            placement: 'start',
-            content: 'Hi！我是病虫害识别小能手，已经接入DeepSeek深度思考能力。',
-            avatar: {icon: <RedditOutlined/>},
-        }
+        // {
+        //     role: 'welcome',
+        //     placement: 'start',
+        //     content: 'Hi！我是病虫害识别小能手，已经接入DeepSeek深度思考能力。',
+        //     avatar: {icon: <RedditOutlined/>},
+        // }
     ]);
     const [loading, setLoading] = React.useState(false);
     const [direction, setDirection] =
@@ -64,9 +64,15 @@ export default () => {
     const [open, setOpen] = React.useState(false);
     const [items, setItems] = React.useState<GetProp<AttachmentsProps, 'items'>>([]);
     const [text, setText] = React.useState('');
+    const [tempFileInfo, setTempFileInfo] = React.useState<{
+      name: string;
+      size: number;
+      type: string;
+      preview: string;
+    } | null>(null);
 
     const senderRef = React.useRef<GetRef<typeof Sender>>(null);
-    const {Header, Content} = Layout;
+    const { Header, Content } = Layout;
 
     const StyledHeader = styled(Header)`
       background: rgb(211, 236, 250) !important;
@@ -96,76 +102,72 @@ export default () => {
         navigate('/');
     };
 
-    const updateMessage = (index: number, content: string) => {
-    setMessages(prev => {
-      const newMessages = [...prev];
-      if (index >= 0 && index < newMessages.length) {
-        const message = newMessages[index];
-        message.content = content;
-        if (message.role === 'assistant') {
-          message.loading = true;
-        }
-      }
-      return newMessages;
-    });
-  };
+    const roles: GetProp<typeof Bubble.List, 'roles'> = {
+        // user: {
+        //   placement: 'start',
+        //   typing: true,
+        //   avatar: { icon: <UserOutlined />, style: { background: '#fde3cf' } },
+        // },
+        // suggestion: {
+        //   placement: 'start',
+        //   avatar: { icon: <UserOutlined />, style: { visibility: 'hidden' } },
+        //   variant: 'borderless',
+        //   messageRender: (items) => <Prompts vertical items={items as any} />,
+        // },
+        file: {
+          placement: 'start',
+          avatar: { icon: <UserOutlined />, style: { visibility: 'hidden' } },
+          variant: 'borderless',
+          messageRender: (items: any) => (
+            <Flex vertical gap="middle">
+              {(items as any[]).map((item) => (
+                <Attachments.FileCard key={item.uid} item={item} />
+              ))}
+            </Flex>
+          ),
+        },
+      };
 
-  const appendMessageContent = (index: number, content: string) => {
-    setMessages(prev => {
-      const newMessages = [...prev];
-      if (index >= 0 && index < newMessages.length) {
-        newMessages[index].content += content;
-      }
-      return newMessages;
-    });
-  };
+      
 
-  const setTypingStatus = (index: number, loading: boolean) => {
-    setMessages(prev => {
-      const newMessages = [...prev];
-      if (index >= 0 && index < newMessages.length) {
-        newMessages[index].loading = loading;
-      }
-      return newMessages;
-    });
-  };
 
-  const handleSubmit = async (inputValue: string) => {
-    setLoading(true);
-    const formData = new FormData();
-    formData.append('textInput', text);
-    items.forEach(item => {
-      console.log(item);
-      if (item.originFileObj) {
-        formData.append('file', item.originFileObj);
-      }
-    });
+const handleSubmit = async (inputValue: string) => {
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('textInput', text);
+        items.forEach(item => {
+            //   console.log(item);
+            if (item.originFileObj) {
+                formData.append('file', item.originFileObj);
+            }
+        });
 
         // 添加用户消息和上传的图片
         setMessages(prev => [
             ...prev,
-            {
-                role: 'user',
-                placement: 'end',
-                content: '',
-                avatar: {icon: <UserOutlined/>},
-                attachments: items.length > 0 ? items.map(item => ({
-                    type: 'image',
-                    url: (item.originFileObj ? URL.createObjectURL(item.originFileObj) : ''),
-                    name: item.name
-                })) : undefined
-            },
+            // {
+            //     role: 'file',
+            //     placement: 'end',
+            //     content: '',
+            //     avatar: { icon: <UserOutlined /> },
+            //     attachments: tempFileInfo ? [{
+            //         type: 'image',
+            //         url: tempFileInfo.name,
+            //         name: tempFileInfo.name,
+            //         preview: tempFileInfo.preview,
+            //     }] : []
+            // },
             {
                 role: 'user',
                 placement: 'end',
                 content: text,
-                avatar: {icon: <UserOutlined/>}
+                avatar: { icon: <UserOutlined /> }
             },
             {
                 role: 'assistant',
                 content: '',
                 loading: true,
-                avatar: {icon: <RedditOutlined/>},
+                avatar: { icon: <RedditOutlined /> },
             }
         ]);
 
@@ -174,11 +176,11 @@ export default () => {
                 method: 'POST',
                 body: formData,
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             // 直接处理流式响应
             await handleStreamResponse(response);
         } catch (error) {
@@ -190,7 +192,7 @@ export default () => {
                     role: 'assistant',
                     placement: 'start',
                     content: error instanceof Error ? error.message : '请求失败，请稍后再试',
-                    avatar: {icon: <RedditOutlined/>},
+                    avatar: { icon: <RedditOutlined /> },
                 }
             ]);
         } finally {
@@ -198,6 +200,15 @@ export default () => {
             setItems([]);
             setText('');
         }
+    };
+
+    const getBase64Preview = (file: File) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
     };
 
 
@@ -217,13 +228,12 @@ export default () => {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                
+
                 const chunk = decoder.decode(value, { stream: true });
                 buffer += chunk;
-                
-                // 处理steam-data.txt格式的数据流
+
                 const lines = buffer.split('\n');
-                
+
                 // 保留最后一行（可能不完整）
                 buffer = lines.pop() || '';
                 for (const line of lines) {
@@ -231,7 +241,7 @@ export default () => {
                         const rawData = JSON.parse(line.slice(5).trim());
                         if (rawData.choices[0].message.content.length > 0 && rawData.choices[0].message.content[0].text) {
                             fullResponse += rawData.choices[0].message.content[0].text;
-                            
+
                             // 实时更新消息内容，保留markdown格式
                             setMessages(prev => [
                                 ...prev.slice(0, -1),
@@ -246,7 +256,7 @@ export default () => {
                         }
                     }
                 }
-                
+
                 // 强制触发重新渲染
                 await new Promise(resolve => setTimeout(resolve, 0));
                 // buffer = lines.length > 1 ? lines[lines.length - 1] : '';
@@ -278,19 +288,38 @@ export default () => {
             }}
         >
             <Attachments
-                // Mock not real upload file
+                maxCount={1}
+                multiple={false} // 不允许同时上传多个文件
                 beforeUpload={() => false}
                 items={items}
-                onChange={({fileList}) => setItems(fileList)}
+                // onChange={({fileList}) => setItems(fileList)}
+                onChange={async ({ fileList }) => {
+                    if (fileList.length > 0 && fileList[0].originFileObj) {
+                        const currentFile = fileList[0];
+                        const base64Preview = await getBase64Preview(currentFile.originFileObj as File);
+                        currentFile.thumbUrl = base64Preview as string;
+                        console.log('手动生成的缩略图 Base64:', base64Preview);
+                        
+                        setTempFileInfo({
+                            name: currentFile.name,
+                            size: currentFile.size || 0,
+                            type: currentFile.type || '',
+                            preview: base64Preview as string
+                        });
+                    } else {
+                        setTempFileInfo(null);
+                    }
+                    setItems(fileList);
+                }}
                 placeholder={(type) =>
                     type === 'drop'
                         ? {
-                            title: 'Drop file here',
+                            title: '拖拽文件到此处',
                         }
                         : {
-                            icon: <CloudUploadOutlined/>,
-                            title: 'Upload files',
-                            description: 'Click or drag files to this area to upload',
+                            icon: <CloudUploadOutlined />,
+                            title: '上传图片',
+                            description: '点击或拖拽文件到此处',
                         }
                 }
                 getDropContainer={() => senderRef.current?.nativeElement}
@@ -305,7 +334,7 @@ export default () => {
                 <HeaderContent>
                     <BackButton
                         type="text"
-                        icon={<ArrowLeftOutlined/>}
+                        icon={<ArrowLeftOutlined />}
                         onClick={handleBack}
                     >
                         返回
@@ -316,11 +345,11 @@ export default () => {
             <Welcome
                 icon="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*s5sNRo5LjfQAAAAAAAAAAAAADgCCAQ/fmt.webp"
                 title="Hi！我是病虫害识别小能手。"
-                description="你有什么问题都可以问我， 我会尽力回答你的。"
+                description="已经接入DeepSeek深度思考能力，你有什么问题都可以问我， 我会尽力回答你的。"
             />
             <Card>
                 <XProvider direction={direction}>
-                    <Flex style={{height: 720}} gap={12}>
+                    <Flex style={{ height: 'calc(100vh - 210px)' }} gap={12}>
                         {/* <Conversations
                             style={{width: 200}}
                             defaultActiveKey="1"
@@ -338,13 +367,14 @@ export default () => {
                             ]}
                         /> */}
                         {/* <Divider type="vertical" style={{height: '100%'}}/> */}
-                        <Flex vertical style={{flex: 1}} gap={8}>
+                        <Flex vertical style={{ flex: 1 }} gap={8}>
                             <Bubble.List
-                                style={{flex: 1}}
+                                style={{ flex: 1 }}
+                                roles={roles}
                                 items={messages.map(msg => ({
                                     ...msg,
-                                    content: <MarkdownRenderer content={msg.content} isLoading={msg.loading} />,
-                                    style: msg.role === 'assistant' ? { textAlign:'left' } : { textAlign: 'right' }
+                                    content: <MarkdownRenderer content={msg.content} isLoading={msg.loading} />,  //msg.role === 'file' ? <Attachments.FileCard key={item.uid} item={msg.attachments} /> :
+                                    style: msg.role === 'assistant' ? { textAlign: 'left' } : { textAlign: 'right' }
                                 }))}
                             />
                             {/*{<Prompts*/}
@@ -361,8 +391,8 @@ export default () => {
                             {/*        },*/}
                             {/*    ]}*/}
                             {/*/>}*/}
-                            <Suggestion items={[{label: 'Write a report', value: 'report'}]}>
-                                {({onTrigger, onKeyDown}) => {
+                            <Suggestion items={[{ label: 'Write a report', value: 'report' }]}>
+                                {({ onTrigger, onKeyDown }) => {
                                     return (
                                         <Sender
                                             loading={loading}
@@ -370,7 +400,7 @@ export default () => {
                                             header={senderHeader}
                                             prefix={
                                                 <Badge dot={items.length > 0 && !open}>
-                                                    <Button onClick={() => setOpen(!open)} icon={<LinkOutlined/>}/>
+                                                    <Button onClick={() => setOpen(!open)} icon={<LinkOutlined />} />
                                                 </Badge>
                                             }
                                             value={text}
@@ -415,14 +445,10 @@ export default () => {
 
 
 interface Message {
-    role: 'welcome' | 'user' | 'assistant';
+    role: 'file' | 'user' | 'assistant';
     placement?: 'start' | 'end';
     content: string;
     avatar: { icon: React.ReactNode };
     loading?: boolean;
-    attachments?: Array<{
-        type: 'image';
-        url: string;
-        name: string;
-    }>;
+    attachments?: { type: 'image'; url: string; name: string; preview: string }[];
 }

@@ -25,7 +25,7 @@ const blink = keyframes`
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean }>`
-  margin: 10px 0;
+  margin: 20px 0;
   padding: 10px 12px;
   max-width: 100%;
   width: fit-content;

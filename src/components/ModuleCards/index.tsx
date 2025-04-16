@@ -96,10 +96,10 @@ const modules = [
     CardComponent: YellowCard,
   },
   {
-    title: '农业遥感图像识别',
+    title: 'AI解决方案',
     icon: jjfaIcon,
     key: 'solutions',
-    disabled: true,
+    disabled: false,
     CardComponent: PurpleCard,
   },
 ];
@@ -115,7 +115,7 @@ const ModuleCards: React.FC = () => {
     //  if (key === 'meeting') { 
     //   window.open('https://ai.ghxtcom.com/', '_blank');
     // } else 
-    if (['product', 'rules','meeting'].includes(key)) {
+    if (['product', 'rules', 'meeting', 'solutions'].includes(key)) {
       navigate(`/chat/${key}`);
     }
   };

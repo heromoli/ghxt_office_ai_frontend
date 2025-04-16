@@ -115,6 +115,7 @@ const DeleteButton = styled(Button)`
 
 export interface ChatInputRef {
   setInput: (value: string) => void;
+  sendMessage: () => void;
 }
 
 const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
@@ -130,7 +131,8 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
   const { moduleId } = useParams<{ moduleId: string }>();
 
   useImperativeHandle(ref, () => ({
-    setInput: (value: string) => setInput(value)
+    setInput: (value: string) => setInput(value),
+    sendMessage: () => handleSend()
   }));
 
   const handleSend = async () => {
@@ -157,6 +159,9 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
           case 'meeting':
             await handleConferenceChat(input.trim());
             break;
+          case 'solutions':
+              await handleSolutionsChat(input.trim());
+              break;
           default:
             message.error('未知的模块类型');
         }
@@ -386,6 +391,35 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
     }
   };
 
+  const handleSolutionsChat = async (message: string) => {
+    dispatch(setLoading(true));
+    try {
+      dispatch(addMessage({ role: 'user', content: message, thoughts: '' }));
+
+      const response = await fetch(API_ENDPOINTS.CHAT_STREAM_SOLUTIONS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`发送消息失败: ${response.status}`);
+      }
+
+      await handleStreamResponse(response);
+    } catch (error) {
+      console.error('Solutions chat error:', error);
+    } finally {
+      dispatch(setLoading(false));
+      setInput('');
+    }
+  };
+
   // 处理会议秘书对话
   const handleConferenceChat = async (message: string) => {
     dispatch(setLoading(true));
@@ -554,4 +588,4 @@ const ChatInput = forwardRef<ChatInputRef>((props, ref) => {
 
 ChatInput.displayName = 'ChatInput';
 
-export default ChatInput; 
+export default ChatInput;

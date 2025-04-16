@@ -81,6 +81,7 @@ const moduleConfig = {
   rules: {
     title: '规章制度百事通',
     welcome: '您好，我是规章制度百事通，有什么我可以帮您的？',
+    instruction: '您可以问我以下问题：',
     questions: [
       '请介绍公司的考勤制度。',
       '出差及差旅费有什么管理规定？',
@@ -89,16 +90,26 @@ const moduleConfig = {
   },
   product: {
     title: '项目一指禅',
-    welcome: '您好，我是项目一指禅，请问您想了解哪些项目信息？',
+    welcome: '您好，我是项目一指禅，请问您想了解哪些信息？',
+    instruction: '请选择以下分类中的一个，以便我为您提供更精准的信息',
     questions: [
-      '请介绍“慧农云”小程序的主要功能。',
-      '“未来乡村”项目的简介。',
-      '海洋灾害综合防治系统是做什么的？'
+      '公司以往项目案例',
+      '公司硬件能力',
+      '公司能力边界类',
+      '行业解决方案类',
+      '标杆项目验证类',
+      '政策合规类',
+      '客户价值证明类',
+      '技术实施保障类',
+      '竞品对比类',
+      '客户痛点挖掘类',
+      '销售策略类'
     ]
   },
   meeting: {
     title: '会议小秘书',
     welcome: '您好，我是会议小秘书，需要我帮您记录会议内容吗？',
+    instruction: '您可以问我以下问题：',
     questions: [
       '如何开始会议记录？',
       '如何导出会议纪要？',
@@ -106,12 +117,14 @@ const moduleConfig = {
     ]
   },
   solutions: {
-    title: 'AI解决方案平台',
+    title: 'AI解决方案',
     welcome: '您好，我是AI解决方案专家，请问您需要什么样的解决方案？',
+    instruction: '请从以下四个大类中选择一个，以便我为您提供更具体的信息',
     questions: [
-      '有哪些AI解决方案？',
-      '如何定制AI解决方案？',
-      '解决方案的实施周期是多久？'
+      '技术趋势与创新应用',
+      '行业解决方案与实施路径',
+      '政策与生态协同',
+      '前沿挑战与未来方向'
     ]
   }
 };
@@ -126,7 +139,7 @@ const ChatPage: React.FC = () => {
   const { moduleId } = useParams<{ moduleId: keyof typeof moduleConfig }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const inputRef = useRef<{ setInput: (value: string) => void }>(null);
+  const inputRef = useRef<{ setInput: (value: string) => void; sendMessage: () => void }>(null);
 
 
   useEffect(() => {
@@ -160,6 +173,9 @@ const ChatPage: React.FC = () => {
   const handleQuestionClick = (question: string) => {
     if (inputRef.current) {
       inputRef.current.setInput(question);
+      setTimeout(() => {
+        inputRef.current?.sendMessage();
+      }, 0);
     }
   };
 
@@ -198,7 +214,7 @@ const ChatPage: React.FC = () => {
               transition={{ delay: 0.2 }}
             >
               <WelcomeTitle>{config.welcome}</WelcomeTitle>
-              <div>您可以问我以下问题：</div>
+              <div>{config.instruction}</div>
               <QuickQuestions>
                 {config.questions.map((question, index) => (
                   <QuestionButton 
@@ -220,4 +236,4 @@ const ChatPage: React.FC = () => {
   );
 };
 
-export default ChatPage; 
+export default ChatPage;
