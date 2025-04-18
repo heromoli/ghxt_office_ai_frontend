@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useRef }  from 'react';
 import { Layout, Menu, Tag, message } from 'antd';
 import styled from 'styled-components';
 import { MessageOutlined } from '@ant-design/icons';
 import ModuleCards from '../ModuleCards';
 import { useNavigate } from 'react-router-dom';
-// import { useDispatch } from 'react-redux';
-// import titleBg from './icons/title_bg.png';
 import { StyledHeader, HeaderContent } from './styles';
+import DingtalkAuth from '../DingtalkAuth';
 
 const { Header, Content, Sider } = Layout;
 
@@ -177,8 +176,16 @@ const menuItems = [
 ];
 
 const MainLayout: React.FC = () => {
+  const [dingReady, setDingReady] = useState(false);
+  
   const navigate = useNavigate();
-  // const dispatch = useDispatch();
+
+  const handleDingReady = () => {
+    setDingReady(true);
+    // 可以在这里调用钉钉API
+    console.log('DingTalk is ready!');
+  };
+
 
   const handleMenuClick = (key: string) => {
     if (key === 'pest') {
@@ -194,6 +201,7 @@ const MainLayout: React.FC = () => {
 
   return (
     <StyledLayout>
+      <DingtalkAuth onReady={handleDingReady} />
       <StyledHeader>
         <HeaderContent>
           <Title>您好，欢迎使用国海信通办公大模型</Title>

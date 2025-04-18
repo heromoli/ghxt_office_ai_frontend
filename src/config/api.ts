@@ -1,5 +1,6 @@
 // API endpoints configuration
 export const API_ENDPOINTS = {
+  CONNTEST: '/proxy/api/connTest',
   CHAT_STREAM: '/proxy/api/chat/chatStreamWithSession',
   CHAT_STREAM_PRODUCT: '/proxy/api/chat/chatStreamProductIntroduction',
   CHAT_STREAM_SOLUTIONS: '/proxy/api/chat/chatStreamSolutions',
