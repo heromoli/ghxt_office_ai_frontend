@@ -201,7 +201,7 @@ const MainLayout: React.FC = () => {
 
   return (
     <StyledLayout>
-      <DingtalkAuth onReady={handleDingReady} />
+      {/* <DingtalkAuth onReady={handleDingReady} /> */}
       <StyledHeader>
         <HeaderContent>
           <Title>您好，欢迎使用国海信通办公大模型</Title>

@@ -6,7 +6,7 @@ export const API_ENDPOINTS = {
   CHAT_STREAM_SOLUTIONS: '/proxy/api/chat/chatStreamSolutions',
   CHAT_STREAM_CONFERENCE: '/proxy/api/chat/chatStreamConference',
   CHAT_STREAM_CONFERENCE_LOCAL_FILE: '/proxy/api/chat/chatStreamConferenceLocalFile',
-  CHAT_STREAM_LOCAL_IMAGE: '/proxy/api/chat/chatStreamLocalImag',
+  CHAT_STREAM_LOCAL_IMAGE: '/proxy/api/chat/visualRecognitionStreamLocalImag',
 } as const;
 
 // export const API_ENDPOINTS = {

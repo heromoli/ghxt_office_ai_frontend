@@ -77,7 +77,7 @@ const BlinkingCursor = styled.span`
 `;
 
 interface MarkdownRendererProps {
-  content: string;
+  content: React.ReactNode;
   className?: string;
   isLoading?: boolean;
 }
@@ -89,11 +89,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className,
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
       >
-        {content}
+        {String(content)}
       </ReactMarkdown>
       {isLoading && <BlinkingCursor />}
     </MarkdownContainer>
   );
 };
 
-export default MarkdownRenderer; 
+export default MarkdownRenderer;
